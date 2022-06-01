@@ -1,124 +1,67 @@
-import React,{useState} from 'react'
+import React, { useEffect, useState } from 'react'
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
-import {Container} from 'react-bootstrap';
+import Posts from './Posts';
+import FormModal from './FormModal';
+import { getPosts } from './api';
 
-const initialValues = {
-    userName:'' ,
-    userSurname:'' ,
-    userSalary:''
-}
+const App = () => {
+    const [posts, setPosts] = useState([]);
+    const [postToEdit, setPostToEdit] = useState(null);
+    const [formMode, setFormMode] = useState('');
 
-function App() {
-    const [userData , setUserData] = useState(initialValues);
-    const [users , setUsers] = useState([]);
-    const [editUserData , setEditUserData] = useState({
-        edit: false ,
-        userIndex:null
-    })
-
-    const handleEditClick = (data , index) => {
-        setUserData(data);
-        setEditUserData({
-            edit:true ,
-            userIndex: index
-        })
+    const deletePost = (id) => {
+        const newPostsArray = posts.filter(item => item.id !== id);
+        setPosts(newPostsArray);
     }
 
-    const handleRemoveClick = (index) => {
-        setUsers(users.filter((user , userIndex) => userIndex !== index));
+    const initiatePostToEdit = (post) => {
+        setPostToEdit(post);
     }
 
-    const isFilledFields = userData.userName && userData.userSurname && userData.userSalary;
-
-    const handleSubmitUser = (e) => {
-        e.preventDefault();
-
-        if (isFilledFields)  {
-            setUsers((prevState)=> [...prevState , userData])
-            setUserData(initialValues)
-        }
+    const saveEditedPost = () => {
+        const newPostsArray = posts.map(item => {
+            if (item.id === postToEdit.id) {
+                return postToEdit;
+            }
+            return item;
+        });
+        setPosts(newPostsArray);
+        setPostToEdit(null);
     }
 
-    const handleCleanClick = () => setUserData(initialValues)
+    const saveNewPost = () => {
+        setPosts([postToEdit, ...posts]);
+        setPostToEdit(null);
+        setFormMode();
+    }
 
-    console.log('userData:', userData)
+    useEffect(() => {
+       (async () => {
+            const data = await getPosts();
+            setPosts(data);
+        })();
+    }, []);
 
-  return (
-    <div className="App">
-        <Container className="wrapper">
-            <div className="oneMoreWrapper">
-                <div className="tableList">
-                    <div className="tableItem">
-                        <p className="tableText">#</p>
-                    </div>
-                    <div className="tableItem">
-                        <p className="tableText">Name</p>
-                    </div>
-                    <div className="tableItem">
-                        <p className="tableText">Surname</p>
-                    </div>
-                    <div className="tableItem">
-                        <p className="tableText">Message</p>
-                    </div>
-                    <div className="tableItem">
-                        <p className="tableText">Actions</p>
-                    </div>
+    return (
+        <div>
+            <button onClick={() => {
+                setFormMode('new');
+                setPostToEdit({
+                    id: Math.random()
+                });
+            }}>NEW POST</button>
+
+            {postToEdit && (
+                <div style={{ position: 'fixed', width: 400, height: 400, backgroundColor: '#000' }}>
+                    <button onClick={() => initiatePostToEdit(null)}>close</button>
+                    <FormModal postToEdit={postToEdit} setPostToEdit={setPostToEdit} submit={formMode === 'new' ? saveNewPost : saveEditedPost} />
                 </div>
-                <div>
-                    {users.map((user , index)=> (
-                        <div className="newAddedUsers">
-                            <div className="newAddedUsersItem">
-                                <p>{index + 1}</p>
-                            </div>
-                            <div>
-                                <p>{user.userName}</p>
-                            </div>
-                            <div>
-                                <p>{user.userSurname}</p>
-                            </div>
-                            <div>
-                                <p>{user.userSalary}</p>
-                            </div>
-                            <div className="actionButtons">
-                                <button onClick={() => handleEditClick(user , index)}>Edit</button>
-                                <button onClick={() => handleRemoveClick(index)}>Remove</button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            <div className="inputs">
-                <form onSubmit={handleSubmitUser} action="" className="form">
-                    <input type="text" placeholder="Write your name"
-                           onChange={(e) => setUserData((prevState)=> ({
-                        ...prevState,
-                        userName: e.target.value
-                    }))}
-                    value={userData.userName}/>
-                    <input type="text" placeholder="Write your surname"
-                           onChange={(e) => setUserData((prevState) => ({
-                        ...prevState,
-                        userSurname: e.target.value
-                    }))}
-                           value={userData.userSurname}/>
-                    <input type="text" placeholder="Write your message"
-                           onChange={(e) => setUserData((prevState) => ({
-                        ...prevState,
-                        userSalary: e.target.value
-                    }))}
-                           value={userData.userSalary}/>
-                </form>
-
-                <div className="actions">
-                    <button onClick={handleCleanClick} type="reset">Clean</button>
-                    <button onClick={handleSubmitUser} type="submit">Add</button>
-                </div>
-            </div>
-        </Container>
-    </div>
-  );
-}
+            )}
+            <Posts posts={posts} initiatePostToEdit={initiatePostToEdit} deletePost={deletePost}/>
+        </div>
+    );
+};
 
 export default App;
+
